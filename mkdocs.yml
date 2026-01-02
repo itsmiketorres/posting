@@ -38,6 +38,7 @@ nav:
     - "Importing": "guide/importing.md"
     - "Scripting": "guide/scripting.md"
     - "Help System": "guide/help_system.md"
+    - "Man Pages": "guide/man_pages.md"
   - Roadmap: "roadmap.md"
   - Changelog: "CHANGELOG.md"
   - FAQ: "faq.md"
