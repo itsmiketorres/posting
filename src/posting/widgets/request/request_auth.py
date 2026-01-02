@@ -6,7 +6,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.types import InputValidationOn
 from textual.validation import Length
-from textual.widgets import ContentSwitcher, Input, Label, Select, Static
+from textual.widgets import Checkbox, ContentSwitcher, Input, Label, Select, Static
 
 from posting.auth import HttpxBearerTokenAuth
 from posting.collection import Auth, BasicAuth, BearerTokenAuth, DigestAuth
@@ -32,6 +32,10 @@ class UserNamePasswordForm(Vertical):
         & #username-input {
             margin-bottom: 1;
         }
+
+        & #password-input {
+            margin-bottom: 1;
+        }
     }
     """
 
@@ -42,7 +46,17 @@ class UserNamePasswordForm(Vertical):
             id="username-input",
         )
         yield Label("Password")
-        yield VariableInput(placeholder="Enter a password", id="password-input")
+        yield VariableInput(
+            placeholder="Enter a password",
+            password=True,
+            id="password-input",
+        )
+        yield Checkbox("Hide Value", value=True, id="hide-value-checkbox")
+
+    @on(Checkbox.Changed, selector="#hide-value-checkbox")
+    def on_hide_value_changed(self, event: Checkbox.Changed) -> None:
+        password_input = self.query_one("#password-input", Input)
+        password_input.password = event.value
 
     def set_values(self, username: str, password: str) -> None:
         self.query_one("#username-input", Input).value = username
@@ -86,10 +100,15 @@ class BearerTokenForm(Vertical):
             validate_on=["changed"],
             id="token-input",
         )
+        yield Checkbox("Hide Value", value=True, id="hide-value-checkbox")
 
     def on_mount(self) -> None:
         token_input = self.token_input
         token_input.validate(token_input.value)
+
+    @on(Checkbox.Changed, selector="#hide-value-checkbox")
+    def on_hide_value_changed(self, event: Checkbox.Changed) -> None:
+        self.token_input.password = event.value
 
     @on(Input.Changed)
     def on_input_changed(self, event: Input.Changed) -> None:
