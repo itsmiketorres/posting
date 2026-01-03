@@ -375,11 +375,13 @@ class TestLoadingRequest:
 
 @use_config("general.yaml")
 class TestHelpScreen:
-    def test_help_screen_appears(self, snap_compare):
-        """Check that the help screen appears."""
+    def test_help_screen_appears_with_ctrl_z(self, snap_compare):
+        """Check that the help screen appears when pressing ctrl+z."""
 
         async def run_before(pilot: Pilot):
-            await pilot.press("ctrl+question_mark")
+            await pilot.press("ctrl+z")
+            # Verify the help screen is present by checking for its ID
+            assert pilot.app.screen.id == "help-screen", "Help screen should be displayed"
 
         assert snap_compare(POSTING_MAIN, run_before=run_before, terminal_size=(80, 42))
 

@@ -1225,7 +1225,7 @@ class Posting(App[None], inherit_bindings=False):
             id="quit",
         ),
         Binding(
-            "f1,ctrl+question_mark,ctrl+shift+slash",
+            "ctrl+z",
             "help",
             "Help",
             tooltip="Open the help dialog for the currently focused widget.",
@@ -1647,7 +1647,7 @@ class Posting(App[None], inherit_bindings=False):
         self.set_focus(None)
         from posting.help_screen import HelpScreen
 
-        await self.push_screen(HelpScreen(widget=focused), callback=reset_focus)
+        await self.push_screen(HelpScreen(widget=focused, id="help-screen"), callback=reset_focus)
 
     def exit(
         self,
