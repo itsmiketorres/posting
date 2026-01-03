@@ -1,9 +1,12 @@
+from typing import Iterable
+
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.content import Content
 from textual_autocomplete import DropdownItem, AutoComplete, TargetState
+from posting.auto_headers import is_auto_request_header
 from posting.collection import Header
 from posting.help_data import HelpData
 
@@ -258,6 +261,8 @@ Press `backspace` to delete a header.
 Press `space` to toggle a header on and off.
 Posting will automatically attach a `User-Agent` header to outgoing requests in order to identify itself, and set the `Content-Type` depending on the content
 in the body tab. Setting a header in this table will override the default value in these cases.
+
+Headers that are typically auto-set by HTTP clients (e.g., `User-Agent`, `Accept-Encoding`) are shown dimmed.
 """,
     )
 
@@ -275,6 +280,44 @@ in the body tab. Setting a header in this table will override the default value 
         self.fixed_columns = 1
         self.row_disable = True
         self.add_columns(*["Header", "Value"])
+
+    def add_header_row(
+        self, name: str, value: str, enabled: bool = True
+    ) -> None:
+        """Add a header row, styling it as dim if it's an auto-set header."""
+        if is_auto_request_header(name):
+            name_text = Text(name, style="dim")
+            value_text = Text(value, style="dim")
+            self.add_row(
+                name_text,
+                value_text,
+                explicit_by_user=False,
+                label=self.Checkbox(self, enabled),
+            )
+        else:
+            self.add_row(
+                name,
+                value,
+                explicit_by_user=False,
+                label=self.Checkbox(self, enabled),
+            )
+
+    def replace_all_rows(
+        self,
+        rows: Iterable[Iterable[str]],
+        enable_states: Iterable[bool] | None = None,
+    ) -> None:
+        """Replace all rows, styling auto-set headers as dim."""
+        self.clear()
+        if enable_states is not None:
+            for row, enabled in zip(rows, enable_states):
+                row_list = list(row)
+                self.add_header_row(row_list[0], row_list[1], enabled)
+        else:
+            for row in rows:
+                row_list = list(row)
+                self.add_header_row(row_list[0], row_list[1])
+        self.column_width_refresh()
 
     def watch_has_focus(self, value: bool) -> None:
         self._scroll_cursor_into_view()

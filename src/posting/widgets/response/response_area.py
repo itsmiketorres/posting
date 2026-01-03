@@ -91,9 +91,8 @@ class ResponseArea(Vertical):
         # Update the response headers table with the response headers.
         response_headers_table = self.headers_table
         response_headers_table.clear()
-        response_headers_table.add_rows(
-            [(name, value) for name, value in response.headers.items()]
-        )
+        for name, value in response.headers.items():
+            response_headers_table.add_header_row(name, value)
 
         # Update the response cookies table with the cookies from the response.
         cookies_section = self.cookies_section
