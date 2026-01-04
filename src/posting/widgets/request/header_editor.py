@@ -3,8 +3,11 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.content import Content
+from textual.coordinate import Coordinate
+from textual.widgets.data_table import RowKey
 from textual_autocomplete import DropdownItem, AutoComplete, TargetState
 from posting.collection import Header
+from posting.mdn_header_links import MDNLinkMixin
 from posting.help_data import HelpData
 
 from posting.widgets.datatable import PostingDataTable
@@ -245,9 +248,10 @@ class HeaderEditor(Vertical):
         return self.query_one("#header-key-input", HeaderInput)
 
 
-class HeadersTable(PostingDataTable):
+class HeadersTable(MDNLinkMixin, PostingDataTable):
     """
-    The headers table.
+    The headers table for request headers.
+    Inherits MDN link functionality from MDNLinkMixin.
     """
 
     help = HelpData(
@@ -256,6 +260,7 @@ class HeadersTable(PostingDataTable):
 A table of HTTP headers that will be sent with the request.
 Press `backspace` to delete a header.
 Press `space` to toggle a header on and off.
+Press `enter` to open MDN documentation for standard headers.
 Posting will automatically attach a `User-Agent` header to outgoing requests in order to identify itself, and set the `Content-Type` depending on the content
 in the body tab. Setting a header in this table will override the default value in these cases.
 """,
@@ -266,6 +271,7 @@ in the body tab. Setting a header in this table will override the default value 
     BINDINGS = [
         Binding("backspace", action="remove_row", description="Remove header"),
         Binding("space", action="toggle_row", description="Toggle header"),
+        *MDNLinkMixin.MDN_BINDINGS,
     ]
 
     def on_mount(self):
@@ -276,6 +282,41 @@ in the body tab. Setting a header in this table will override the default value 
         self.row_disable = True
         self.add_columns(*["Header", "Value"])
 
+    def add_row(
+        self,
+        *cells: str | Text,
+        height: int | None = 1,
+        key: str | None = None,
+        label: str | Text | None = None,
+        explicit_by_user: bool = True,
+    ) -> RowKey:
+        """Add a row with MDN link indicator for standard headers."""
+        return self._add_row_with_mdn_indicator(
+            *cells,
+            height=height,
+            key=key,
+            label=label,
+            explicit_by_user=explicit_by_user,
+        )
+
+    def update_cell_at(
+        self,
+        coordinate: Coordinate,
+        value: str | Text,
+        *,
+        update_width: bool = False,
+    ) -> None:
+        """Update a cell, adding MDN link indicator for header name column."""
+        # If updating the header name column (column 0), add indicator if it has MDN docs
+        if coordinate.column == 0:
+            if isinstance(value, Text):
+                header_name = value.plain
+            else:
+                header_name = str(value)
+            value = self._make_header_with_indicator(header_name)
+
+        super().update_cell_at(coordinate, value, update_width=update_width)
+
     def watch_has_focus(self, value: bool) -> None:
         self._scroll_cursor_into_view()
         return super().watch_has_focus(value)
@@ -285,15 +326,19 @@ in the body tab. Setting a header in this table will override the default value 
         for row_index in range(self.row_count):
             row = self.get_row_at(row_index)
             if self.is_row_enabled_at(row_index):
-                headers[row[0]] = row[1]
+                # Strip indicator from header name
+                header_name = self._strip_link_indicator(row[0])
+                header_value = row[1].plain if isinstance(row[1], Text) else str(row[1])
+                headers[header_name] = header_value
         return headers
 
     def to_model(self) -> list[Header]:
         headers: list[Header] = []
         for row_index in range(self.row_count):
             row = self.get_row_at(row_index)
-            plain_row0 = row[0].plain if isinstance(row[0], Text) else row[0]
-            plain_row1 = row[1].plain if isinstance(row[1], Text) else row[1]
+            # Strip indicator from header name
+            plain_row0 = self._strip_link_indicator(row[0])
+            plain_row1 = row[1].plain if isinstance(row[1], Text) else str(row[1])
             is_row_enabled = self.is_row_enabled_at(row_index)
             headers.append(
                 Header(name=plain_row0, value=plain_row1, enabled=is_row_enabled)
