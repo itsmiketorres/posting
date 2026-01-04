@@ -8,6 +8,7 @@ from posting.collection import Header
 from posting.help_data import HelpData
 
 from posting.widgets.datatable import PostingDataTable
+from posting.widgets.header_tooltip_mixin import HeaderTooltipMixin
 from posting.request_headers import REQUEST_HEADERS
 from posting.widgets.key_value import KeyValueEditor, KeyValueInput
 from posting.widgets.input import PostingInput
@@ -245,7 +246,7 @@ class HeaderEditor(Vertical):
         return self.query_one("#header-key-input", HeaderInput)
 
 
-class HeadersTable(PostingDataTable):
+class HeadersTable(HeaderTooltipMixin, PostingDataTable):
     """
     The headers table.
     """
@@ -268,17 +269,18 @@ in the body tab. Setting a header in this table will override the default value 
         Binding("space", action="toggle_row", description="Toggle header"),
     ]
 
-    def on_mount(self):
+    def on_mount(self) -> None:
         self.show_header = False
         self.cursor_type = "row"
         self.zebra_stripes = True
         self.fixed_columns = 1
         self.row_disable = True
         self.add_columns(*["Header", "Value"])
+        super().on_mount()
 
     def watch_has_focus(self, value: bool) -> None:
+        super().watch_has_focus(value)
         self._scroll_cursor_into_view()
-        return super().watch_has_focus(value)
 
     def as_dict(self) -> dict[str, str]:
         headers: dict[str, str] = {}
